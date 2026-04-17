@@ -1,0 +1,59 @@
+name: Hotel Rates Monitor
+
+on:
+  schedule:
+    # Tijden in UTC. Amsterdam is UTC+2 (CEST, apr–okt) / UTC+1 (CET, okt–apr).
+    # Zomer (CEST): 07:00=05:00 UTC, 12:00=10:00 UTC, 18:00=16:00 UTC
+    # Winter (CET):  07:00=06:00 UTC, 12:00=11:00 UTC, 18:00=17:00 UTC
+    - cron: '0 5 * * *'    # 07:00 CEST / 06:00 CET
+    - cron: '0 10 * * *'   # 12:00 CEST / 11:00 CET
+    - cron: '0 16 * * *'   # 18:00 CEST / 17:00 CET
+  workflow_dispatch:        # handmatig starten via GitHub-interface
+
+concurrency:
+  group: hotel-rates
+  cancel-in-progress: false  # lopende run nooit afbreken
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    permissions:
+      contents: write   # nodig voor git push van data.json + dashboard.html
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python instellen
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Packages installeren
+        run: |
+          pip install --upgrade pip
+          pip install requests beautifulsoup4 gspread google-auth playwright
+
+      - name: Playwright + Chromium installeren
+        run: playwright install --with-deps chromium
+
+      - name: Google credentials herstellen
+        run: echo '${{ secrets.GOOGLE_CREDENTIALS_JSON }}' > credentials.json
+
+      - name: Scraper uitvoeren
+        run: python sheets_writer.py
+
+      - name: Credentials verwijderen
+        if: always()
+        run: rm -f credentials.json
+
+      - name: Resultaten committen
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data.json dashboard.html
+          git diff --cached --quiet || git commit -m "Hotel rates $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push
