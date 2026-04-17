@@ -202,76 +202,30 @@
 </div>
 
 <script>
-  const CSV_URL = 'https://docs.google.com/spreadsheets/d/1QIitW5l90dYN0palPrbGM81m6tqKuvvLgPXqn6lSXwI/export?format=csv';
-
   const REFRESH_MS = 5 * 60 * 1000;
   let refreshTick = null;
 
   async function laad() {
     const btn = document.getElementById('btn-ververs');
     btn.disabled = true;
-    toonMelding('laden', 'Data ophalen uit Google Sheets...');
+    toonMelding('laden', 'Data ophalen...');
 
     try {
-      const rijen = await haalSheetData();
-      if (!rijen.length) { toonMelding('fout', 'Geen data gevonden in het sheet.'); return; }
+      const resp = await fetch('data.json?t=' + Date.now());
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const rijen = await resp.json();
+      if (!rijen.length) { toonMelding('fout', 'Geen data gevonden in data.json.'); return; }
 
-      const latestTs = rijen.reduce((max, r) => r.timestamp > max ? r.timestamp : max, '');
-      const run = rijen.filter(r => r.timestamp === latestTs);
-
-      renderTabel(run, latestTs);
+      const timestamp = rijen[0].timestamp || '';
+      renderTabel(rijen, timestamp);
       verbergMelding();
       document.getElementById('kaart').style.display = '';
       planAutoRefresh();
     } catch (err) {
-      toonMelding('fout', 'Fout bij ophalen: ' + err.message +
-        '. Controleer of het Google Sheet gepubliceerd is (Bestand \u2192 Delen \u2192 Publiceren op internet).');
+      toonMelding('fout', 'Fout bij ophalen: ' + err.message);
     } finally {
       btn.disabled = false;
     }
-  }
-
-  async function haalSheetData() {
-    const resp = await fetch(CSV_URL);
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const text = await resp.text();
-    return parseCSV(text);
-  }
-
-  function parseCSV(text) {
-    const lines = text.replace(/\r/g, '').split('\n').filter(function(l) { return l.trim(); });
-    if (lines.length < 2) return [];
-    const headers = parseCSVRegel(lines[0]);
-    return lines.slice(1).map(function(line) {
-      const waarden = parseCSVRegel(line);
-      const obj = {};
-      headers.forEach(function(h, i) {
-        const v = waarden[i] !== undefined ? waarden[i] : '';
-        obj[h] = v === '' ? null : v;
-      });
-      // Numerieke velden omzetten
-      ['prijs', 'booking_prijs', 'booking_rank', 'expedia_prijs', 'expedia_rank'].forEach(function(k) {
-        if (obj[k] !== null) obj[k] = parseFloat(obj[k]);
-      });
-      return obj;
-    });
-  }
-
-  function parseCSVRegel(line) {
-    const result = [];
-    let huidig = '', inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-      if (line[i] === '"') {
-        if (inQuotes && line[i + 1] === '"') { huidig += '"'; i++; }
-        else { inQuotes = !inQuotes; }
-      } else if (line[i] === ',' && !inQuotes) {
-        result.push(huidig); huidig = '';
-      } else {
-        huidig += line[i];
-      }
-    }
-    result.push(huidig);
-    return result;
   }
 
   function renderTabel(rijen, timestamp) {
@@ -285,22 +239,22 @@
 
     const prijzen = rijen.filter(function(r) { return r.prijs != null; }).map(function(r) { return +r.prijs; });
     const laagste = prijzen.length ? Math.min.apply(null, prijzen) : null;
-    const eigen = rijen.find(function(r) { return r.tarieftype === 'eigen'; });
+    const eigen = rijen.find(function(r) { return r.eigen === true; });
     const eigenPrijs = eigen ? +eigen.prijs : null;
 
     const tbody = document.getElementById('tabel-body');
     tbody.innerHTML = '';
 
     rijen.forEach(function(r) {
-      const prijs    = r.prijs != null ? +r.prijs : null;
-      const isEigen  = r.tarieftype === 'eigen';
+      const prijs     = r.prijs != null ? +r.prijs : null;
+      const isEigen   = r.eigen === true;
       const isLaagste = prijs !== null && prijs === laagste && !isEigen;
 
-      let rowCss = '', badge = '', prijsStr = '\u2014', kamerStr = escHtml(r.kamernaam || '\u2014'), verschilStr = '\u2014';
+      let rowCss = '', badge = '', prijsStr = '\u2014', kamerStr = escHtml(r.kamer_type || '\u2014'), verschilStr = '\u2014';
 
       if (prijs === null) {
-        rowCss  = 'nb';
-        badge   = '<span class="badge nb-badge">N/B</span>';
+        rowCss = 'nb';
+        badge  = '<span class="badge nb-badge">N/B</span>';
       } else {
         rowCss = isEigen ? 'eigen' : (isLaagste ? 'laagste' : '');
         badge  = isEigen
@@ -319,7 +273,7 @@
       const tr = document.createElement('tr');
       tr.className = rowCss;
       tr.innerHTML =
-        '<td class="td-naam">'  + escHtml(r.hotelnaam || '') + ' ' + badge + '</td>' +
+        '<td class="td-naam">'  + escHtml(r.naam || '') + ' ' + badge + '</td>' +
         '<td class="td-kamer">' + kamerStr + '</td>' +
         '<td class="prijs">'   + prijsStr + '</td>' +
         '<td class="ota">'     + otaCel(r.booking_prijs, r.booking_rank) + '</td>' +

@@ -16,6 +16,7 @@ Vereisten:
 """
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -120,6 +121,10 @@ def main() -> None:
 
     print("Stap 1: Hotelprijzen ophalen...")
     resultaten = scrape()
+
+    data_file = Path(__file__).parent / "data.json"
+    data_file.write_text(json.dumps(resultaten, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"data.json bijgewerkt ({len(resultaten)} hotels)")
 
     print("\nStap 2: Wegschrijven naar Google Sheets...")
     schrijf_naar_sheets(resultaten, dry_run=args.dry_run)
