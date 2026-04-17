@@ -15,42 +15,11 @@
       padding: 32px 16px;
     }
 
-    .container { max-width: 1120px; margin: 0 auto; }
+    .container { max-width: 1300px; margin: 0 auto; }
 
     header { margin-bottom: 28px; }
     header h1 { font-size: 1.6rem; font-weight: 700; color: #1a1a2e; }
     header p { color: #666; font-size: 0.9rem; margin-top: 4px; }
-
-    .toolbar {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-top: 10px;
-    }
-
-    .btn-ververs {
-      padding: 5px 14px;
-      background: #1d4ed8;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      font-size: 0.85rem;
-      cursor: pointer;
-      font-weight: 500;
-    }
-    .btn-ververs:hover { background: #1e40af; }
-    .btn-ververs:disabled { background: #93c5fd; cursor: default; }
-
-    #auto-refresh-label { font-size: 0.82rem; color: #999; }
-
-    .melding {
-      padding: 14px 20px;
-      border-radius: 10px;
-      font-size: 0.92rem;
-      margin-bottom: 20px;
-    }
-    .melding-laden { background: #eff6ff; color: #1d4ed8; }
-    .melding-fout  { background: #fef2f2; color: #b91c1c; }
 
     .card {
       background: white;
@@ -68,11 +37,13 @@
       color: #444;
     }
 
+    .table-scroll { overflow-x: auto; }
+
     table { width: 100%; border-collapse: collapse; }
 
     th {
       text-align: left;
-      padding: 10px 16px;
+      padding: 10px 14px;
       font-size: 0.78rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -83,35 +54,52 @@
     }
 
     td {
-      padding: 13px 16px;
+      padding: 11px 14px;
       border-bottom: 1px solid #f8f8f8;
-      font-size: 0.93rem;
+      font-size: 0.9rem;
       vertical-align: middle;
     }
 
-    .td-naam { min-width: 220px; }
-    .td-kamer { color: #666; font-size: 0.85rem; }
     tr:last-child td { border-bottom: none; }
 
-    tr.eigen   { background: #eff6ff; }
-    tr.laagste { background: #f0fdf4; }
-    tr.nb      { opacity: 0.5; }
-
-    td.prijs {
-      font-weight: 700;
-      font-size: 1.05rem;
-      color: #1a1a2e;
-      white-space: nowrap;
+    /* Kalender */
+    .th-hotel { min-width: 200px; position: sticky; left: 0; background: #fafafa; z-index: 1; }
+    .th-datum { text-align: center; min-width: 90px; }
+    .td-hotel-naam {
+      font-size: 0.88rem;
+      position: sticky; left: 0;
+      background: white;
+      z-index: 1;
+      min-width: 200px;
+      border-right: 1px solid #f0f0f0;
     }
+    .rij-eigen .td-hotel-naam { background: #eff6ff; }
 
-    tr.eigen   td.prijs { color: #1d4ed8; }
+    .td-datum { text-align: center; font-weight: 600; font-size: 0.92rem; white-space: nowrap; }
+
+    .cel-eigen  { background: #dbeafe; color: #1d4ed8; }
+    .cel-hoger  { background: #dcfce7; color: #15803d; }
+    .cel-lager  { background: #fee2e2; color: #b91c1c; }
+    .cel-gelijk { background: #f9fafb; color: #374151; }
+    .cel-nb     { background: #f9fafb; color: #9ca3af; font-weight: 400; }
+
+    .prijs-eigen { font-weight: 700; }
+
+    /* Detail tabel */
+    .td-naam { min-width: 220px; }
+    .td-kamer { color: #666; font-size: 0.85rem; }
+    tr.eigen { background: #eff6ff; }
+    tr.laagste { background: #f0fdf4; }
+    tr.niet-beschikbaar { opacity: 0.5; }
+    td.prijs { font-weight: 700; font-size: 1.05rem; color: #1a1a2e; white-space: nowrap; }
+    tr.eigen td.prijs { color: #1d4ed8; }
     tr.laagste td.prijs { color: #16a34a; }
-
-    td.ota    { font-size: 0.9rem; white-space: nowrap; color: #374151; }
+    td.ota { font-size: 0.9rem; white-space: nowrap; color: #374151; }
     .verschil { font-size: 0.9rem; white-space: nowrap; }
     .positief { color: #16a34a; font-weight: 600; }
     .negatief { color: #dc2626; font-weight: 600; }
 
+    /* Badges */
     .badge {
       display: inline-block;
       padding: 2px 8px;
@@ -121,10 +109,11 @@
       vertical-align: middle;
       margin-left: 6px;
     }
-    .eigen-badge   { background: #dbeafe; color: #1d4ed8; }
+    .eigen-badge { background: #dbeafe; color: #1d4ed8; }
     .laagste-badge { background: #dcfce7; color: #16a34a; }
-    .nb-badge      { background: #f3f4f6; color: #9ca3af; }
+    .nb { background: #f3f4f6; color: #9ca3af; }
 
+    /* OTA rank badges */
     .rank {
       display: inline-block;
       padding: 1px 6px;
@@ -138,6 +127,7 @@
     .rank-midden { background: #fef9c3; color: #854d0e; }
     .rank-laag   { background: #fee2e2; color: #b91c1c; }
 
+    /* Legenda */
     .legenda {
       display: flex;
       gap: 20px;
@@ -150,182 +140,188 @@
     }
     .legenda span { display: flex; align-items: center; gap: 6px; }
     .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-    .dot-eigen   { background: #1d4ed8; }
+    .dot-eigen { background: #1d4ed8; }
     .dot-laagste { background: #16a34a; }
+    .kleur-hoger { color: #16a34a; font-size: 1.1rem; }
+    .kleur-lager { color: #dc2626; font-size: 1.1rem; }
+    .kleur-gelijk { color: #9ca3af; font-size: 1.1rem; }
 
-    footer {
-      text-align: center;
-      color: #bbb;
-      font-size: 0.8rem;
-      margin-top: 8px;
-    }
+    footer { text-align: center; color: #bbb; font-size: 0.8rem; margin-top: 8px; }
   </style>
 </head>
 <body>
-<div class="container">
-  <header>
-    <h1>Hotel Tarieven Dashboard</h1>
-    <p id="meta">Laden...</p>
-    <div class="toolbar">
-      <button class="btn-ververs" id="btn-ververs" onclick="laad()">&#8635; Ververs</button>
-      <span id="auto-refresh-label"></span>
+  <div class="container">
+    <header>
+      <h1>Hotel Tarieven Dashboard</h1>
+      <p>Komende 7 nachten &nbsp;·&nbsp; Laatste run: 17-04-2026 08:21 &nbsp;·&nbsp; Gegenereerd: 17-04-2026 08:26</p>
+    </header>
+
+    
+    <div class="card">
+      <div class="card-header">
+        Kalenderweergave — goedkoopste kamer per nacht (komende 7 nachten)
+      </div>
+      <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="th-hotel">Hotel</th>
+            <th class="th-datum">za 18 apr</th><th class="th-datum">zo 19 apr</th><th class="th-datum">ma 20 apr</th><th class="th-datum">di 21 apr</th><th class="th-datum">wo 22 apr</th><th class="th-datum">do 23 apr</th><th class="th-datum">vr 24 apr</th>
+          </tr>
+        </thead>
+        <tbody>
+    
+          <tr class="rij-eigen">
+            <td class="td-hotel-naam">Van der Valk Hengelo <span class="badge eigen-badge">Eigen</span></td>
+            <td class="td-datum cel-eigen"><span class="prijs-eigen">€ 175</span></td><td class="td-datum cel-eigen"><span class="prijs-eigen">€ 152</span></td><td class="td-datum cel-eigen"><span class="prijs-eigen">€ 153</span></td><td class="td-datum cel-nb">—</td><td class="td-datum cel-nb">—</td><td class="td-datum cel-eigen"><span class="prijs-eigen">€ 143</span></td><td class="td-datum cel-eigen"><span class="prijs-eigen">€ 143</span></td>
+          </tr>
+          <tr class="">
+            <td class="td-hotel-naam">Van der Valk Enschede</td>
+            <td class="td-datum cel-hoger">€ 216</td><td class="td-datum cel-lager">€ 142</td><td class="td-datum cel-hoger">€ 180</td><td class="td-datum ">€ 286</td><td class="td-datum ">€ 286</td><td class="td-datum cel-gelijk">€ 142</td><td class="td-datum cel-lager">€ 132</td>
+          </tr>
+          <tr class="">
+            <td class="td-hotel-naam">Van der Valk Deventer</td>
+            <td class="td-datum cel-hoger">€ 354</td><td class="td-datum cel-gelijk">€ 145</td><td class="td-datum cel-gelijk">€ 150</td><td class="td-datum ">€ 204</td><td class="td-datum ">€ 204</td><td class="td-datum cel-nb">—</td><td class="td-datum cel-gelijk">€ 139</td>
+          </tr>
+          <tr class="">
+            <td class="td-hotel-naam">Van der Valk Zwolle</td>
+            <td class="td-datum cel-hoger">€ 227</td><td class="td-datum cel-gelijk">€ 151</td><td class="td-datum cel-hoger">€ 207</td><td class="td-datum ">€ 207</td><td class="td-datum ">€ 307</td><td class="td-datum cel-hoger">€ 207</td><td class="td-datum cel-hoger">€ 166</td>
+          </tr>
+          <tr class="">
+            <td class="td-hotel-naam">Van der Valk Apeldoorn</td>
+            <td class="td-datum cel-hoger">€ 191</td><td class="td-datum cel-hoger">€ 175</td><td class="td-datum cel-hoger">€ 266</td><td class="td-datum ">€ 206</td><td class="td-datum ">€ 211</td><td class="td-datum cel-hoger">€ 160</td><td class="td-datum cel-hoger">€ 166</td>
+          </tr>
+          <tr class="">
+            <td class="td-hotel-naam">Van der Valk Theaterhotel Almelo</td>
+            <td class="td-datum cel-lager">€ 77</td><td class="td-datum cel-lager">€ 77</td><td class="td-datum cel-lager">€ 77</td><td class="td-datum ">€ 77</td><td class="td-datum ">€ 77</td><td class="td-datum cel-lager">€ 77</td><td class="td-datum cel-lager">€ 77</td>
+          </tr>
+          <tr class="">
+            <td class="td-hotel-naam">U-park Hotel Enschede</td>
+            <td class="td-datum cel-nb">—</td><td class="td-datum cel-lager">€ 135</td><td class="td-datum cel-gelijk">€ 148</td><td class="td-datum cel-nb">—</td><td class="td-datum cel-nb">—</td><td class="td-datum cel-hoger">€ 166</td><td class="td-datum cel-hoger">€ 166</td>
+          </tr>
+          <tr class="">
+            <td class="td-hotel-naam">City Hotel Hengelo</td>
+            <td class="td-datum cel-hoger">€ 206</td><td class="td-datum cel-gelijk">€ 152</td><td class="td-datum cel-hoger">€ 195</td><td class="td-datum cel-nb">—</td><td class="td-datum ">€ 334</td><td class="td-datum cel-hoger">€ 157</td><td class="td-datum cel-gelijk">€ 150</td>
+          </tr>
+          <tr class="">
+            <td class="td-hotel-naam">Lumen Hotel Zwolle</td>
+            <td class="td-datum cel-nb">—</td><td class="td-datum cel-lager">€ 141</td><td class="td-datum cel-nb">—</td><td class="td-datum ">€ 171</td><td class="td-datum cel-nb">—</td><td class="td-datum cel-hoger">€ 160</td><td class="td-datum cel-hoger">€ 171</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+      <div class="legenda">
+        <span><span class="dot dot-eigen"></span> Eigen hotel</span>
+        <span><span class="kleur-hoger">&#9632;</span> Concurrent duurder (&ge;5%)</span>
+        <span><span class="kleur-lager">&#9632;</span> Concurrent goedkoper (&ge;5%)</span>
+        <span><span class="kleur-gelijk">&#9632;</span> Vergelijkbare prijs</span>
+      </div>
     </div>
-  </header>
+    
 
-  <div id="melding" class="melding melding-laden">Data ophalen uit Google Sheets...</div>
-
-  <div class="card" id="kaart" style="display:none">
-    <div class="card-header">Prijsvergelijking &mdash; standaard tweepersoonskamer (1 nacht)</div>
-    <table>
-      <thead>
-        <tr>
-          <th>Hotel</th>
-          <th>Kamertype</th>
-          <th>Directe prijs</th>
-          <th>Booking.com</th>
-          <th>Expedia</th>
-          <th>vs. eigen hotel</th>
+    
+    <div class="card">
+      <div class="card-header">
+        Gedetailleerd overzicht — za 18 apr (incl. OTA)
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Hotel</th>
+            <th>Kamertype</th>
+            <th>Directe prijs</th>
+            <th>Booking.com</th>
+            <th>Expedia</th>
+            <th>vs. eigen hotel</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+        <tr class="eigen">
+            <td class="td-naam">Van der Valk Hengelo <span class="badge eigen-badge">Eigen</span></td>
+            <td class="td-kamer">Superior kamer</td>
+            <td class="prijs">€ 174.70</td>
+            <td class="ota">€ 176.76 <span class="rank rank-top">#1</span></td>
+            <td class="ota">—</td>
+            <td class="verschil">—</td>
         </tr>
-      </thead>
-      <tbody id="tabel-body"></tbody>
-    </table>
-    <div class="legenda">
-      <span><span class="dot dot-eigen"></span> Eigen hotel</span>
-      <span><span class="dot dot-laagste"></span> Laagste directe prijs</span>
-      <span><span class="rank rank-top">#1</span> top&nbsp;3 in stad</span>
-      <span><span class="rank rank-midden">#5</span> positie&nbsp;4&ndash;7</span>
-      <span><span class="rank rank-laag">#9</span> positie&nbsp;8+</span>
+        <tr class="">
+            <td class="td-naam">Van der Valk Enschede </td>
+            <td class="td-kamer">Comfort kamer</td>
+            <td class="prijs">€ 216.50</td>
+            <td class="ota">€ 155.16 <span class="rank rank-top">#1</span></td>
+            <td class="ota">—</td>
+            <td class="verschil"><span class="positief">+€ 41.80</span></td>
+        </tr>
+        <tr class="">
+            <td class="td-naam">Van der Valk Deventer </td>
+            <td class="td-kamer">Panorama Kamer</td>
+            <td class="prijs">€ 353.90</td>
+            <td class="ota">€ 168.88 <span class="rank rank-top">#1</span></td>
+            <td class="ota">—</td>
+            <td class="verschil"><span class="positief">+€ 179.20</span></td>
+        </tr>
+        <tr class="">
+            <td class="td-naam">Van der Valk Zwolle </td>
+            <td class="td-kamer">Comfort kamer met balkon</td>
+            <td class="prijs">€ 227.00</td>
+            <td class="ota">€ 204.39 <span class="rank rank-top">#1</span></td>
+            <td class="ota">—</td>
+            <td class="verschil"><span class="positief">+€ 52.30</span></td>
+        </tr>
+        <tr class="">
+            <td class="td-naam">Van der Valk Apeldoorn </td>
+            <td class="td-kamer">Comfort kamer</td>
+            <td class="prijs">€ 190.88</td>
+            <td class="ota">€ 190.18 <span class="rank rank-top">#1</span></td>
+            <td class="ota">—</td>
+            <td class="verschil"><span class="positief">+€ 16.18</span></td>
+        </tr>
+        <tr class="laagste">
+            <td class="td-naam">Van der Valk Theaterhotel Almelo <span class="badge laagste-badge">Laagste</span></td>
+            <td class="td-kamer">Ruime Superior kamer met ligbad</td>
+            <td class="prijs">€ 76.80</td>
+            <td class="ota">€ 144.38 <span class="rank rank-top">#1</span></td>
+            <td class="ota">—</td>
+            <td class="verschil"><span class="negatief">€ -97.90</span></td>
+        </tr>
+        <tr class="niet-beschikbaar">
+            <td class="td-naam">U-park Hotel Enschede <span class="badge nb">N/B</span></td>
+            <td class="td-kamer">—</td>
+            <td class="prijs">—</td>
+            <td class="ota">€ 191.64 <span class="rank rank-top">#1</span></td>
+            <td class="ota">—</td>
+            <td class="verschil">—</td>
+        </tr>
+        <tr class="">
+            <td class="td-naam">City Hotel Hengelo </td>
+            <td class="td-kamer">Comfort Kamer 1 Twin Bed</td>
+            <td class="prijs">€ 206.13</td>
+            <td class="ota">€ 175.11 <span class="rank rank-top">#1</span></td>
+            <td class="ota">—</td>
+            <td class="verschil"><span class="positief">+€ 31.43</span></td>
+        </tr>
+        <tr class="niet-beschikbaar">
+            <td class="td-naam">Lumen Hotel Zwolle <span class="badge nb">N/B</span></td>
+            <td class="td-kamer">—</td>
+            <td class="prijs">—</td>
+            <td class="ota">€ 204.29 <span class="rank rank-top">#1</span></td>
+            <td class="ota">—</td>
+            <td class="verschil">—</td>
+        </tr>
+        </tbody>
+      </table>
+      <div class="legenda">
+        <span><span class="dot dot-eigen"></span> Eigen hotel</span>
+        <span><span class="dot dot-laagste"></span> Laagste directe prijs</span>
+        <span><span class="rank rank-top">#1</span> top&nbsp;3 in stad</span>
+        <span><span class="rank rank-midden">#5</span> positie&nbsp;4–7</span>
+        <span><span class="rank rank-laag">#9</span> positie&nbsp;8+</span>
+      </div>
     </div>
+    
+
+    <footer>Directe prijs incl. BTW en toeristenbelasting &nbsp;·&nbsp; OTA-rank = positie in stadszoekresultaten (populariteitsvolgorde) &nbsp;·&nbsp; Kleur kalender: groen = concurrent duurder, rood = concurrent goedkoper dan eigen hotel</footer>
   </div>
-
-  <footer>Directe prijs incl. BTW en toeristenbelasting &nbsp;&middot;&nbsp; OTA-rank = positie in stadszoekresultaten (populariteitsvolgorde)</footer>
-</div>
-
-<script>
-  const REFRESH_MS = 5 * 60 * 1000;
-  let refreshTick = null;
-
-  async function laad() {
-    const btn = document.getElementById('btn-ververs');
-    btn.disabled = true;
-    toonMelding('laden', 'Data ophalen...');
-
-    try {
-      const resp = await fetch('data.json?t=' + Date.now());
-      if (!resp.ok) throw new Error('HTTP ' + resp.status);
-      const rijen = await resp.json();
-      if (!rijen.length) { toonMelding('fout', 'Geen data gevonden in data.json.'); return; }
-
-      const timestamp = rijen[0].timestamp || '';
-      renderTabel(rijen, timestamp);
-      verbergMelding();
-      document.getElementById('kaart').style.display = '';
-      planAutoRefresh();
-    } catch (err) {
-      toonMelding('fout', 'Fout bij ophalen: ' + err.message);
-    } finally {
-      btn.disabled = false;
-    }
-  }
-
-  function renderTabel(rijen, timestamp) {
-    let tsLabel = timestamp || '';
-    try {
-      const d = new Date(timestamp);
-      tsLabel = d.toLocaleString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-    } catch (_) {}
-    document.getElementById('meta').textContent =
-      'Kamerprijzen voor morgen \u00b7 Laatste run: ' + tsLabel;
-
-    const prijzen = rijen.filter(function(r) { return r.prijs != null; }).map(function(r) { return +r.prijs; });
-    const laagste = prijzen.length ? Math.min.apply(null, prijzen) : null;
-    const eigen = rijen.find(function(r) { return r.eigen === true; });
-    const eigenPrijs = eigen ? +eigen.prijs : null;
-
-    const tbody = document.getElementById('tabel-body');
-    tbody.innerHTML = '';
-
-    rijen.forEach(function(r) {
-      const prijs     = r.prijs != null ? +r.prijs : null;
-      const isEigen   = r.eigen === true;
-      const isLaagste = prijs !== null && prijs === laagste && !isEigen;
-
-      let rowCss = '', badge = '', prijsStr = '\u2014', kamerStr = escHtml(r.kamer_type || '\u2014'), verschilStr = '\u2014';
-
-      if (prijs === null) {
-        rowCss = 'nb';
-        badge  = '<span class="badge nb-badge">N/B</span>';
-      } else {
-        rowCss = isEigen ? 'eigen' : (isLaagste ? 'laagste' : '');
-        badge  = isEigen
-          ? '<span class="badge eigen-badge">Eigen</span>'
-          : (isLaagste ? '<span class="badge laagste-badge">Laagste</span>' : '');
-        prijsStr = '\u20ac\u00a0' + prijs.toFixed(2);
-
-        if (eigenPrijs != null && !isEigen) {
-          const diff  = prijs - eigenPrijs;
-          const teken = diff >= 0 ? '+' : '';
-          const css   = diff >= 0 ? 'positief' : 'negatief';
-          verschilStr = '<span class="' + css + '">' + teken + '\u20ac\u00a0' + diff.toFixed(2) + '</span>';
-        }
-      }
-
-      const tr = document.createElement('tr');
-      tr.className = rowCss;
-      tr.innerHTML =
-        '<td class="td-naam">'  + escHtml(r.naam || '') + ' ' + badge + '</td>' +
-        '<td class="td-kamer">' + kamerStr + '</td>' +
-        '<td class="prijs">'   + prijsStr + '</td>' +
-        '<td class="ota">'     + otaCel(r.booking_prijs, r.booking_rank) + '</td>' +
-        '<td class="ota">'     + otaCel(r.expedia_prijs, r.expedia_rank) + '</td>' +
-        '<td class="verschil">'+ verschilStr + '</td>';
-      tbody.appendChild(tr);
-    });
-  }
-
-  function otaCel(prijs, rank) {
-    if (!prijs && !rank) return '\u2014';
-    const prijsStr = prijs ? '\u20ac\u00a0' + (+prijs).toFixed(2) : '\u2014';
-    if (!rank) return prijsStr;
-    const n   = +rank;
-    const css = n <= 3 ? 'rank-top' : (n <= 7 ? 'rank-midden' : 'rank-laag');
-    return prijsStr + '<span class="rank ' + css + '">#' + n + '</span>';
-  }
-
-  function escHtml(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
-
-  function toonMelding(type, tekst) {
-    const el = document.getElementById('melding');
-    el.className = 'melding ' + (type === 'fout' ? 'melding-fout' : 'melding-laden');
-    el.textContent = tekst;
-    el.style.display = '';
-  }
-
-  function verbergMelding() {
-    document.getElementById('melding').style.display = 'none';
-  }
-
-  function planAutoRefresh() {
-    clearInterval(refreshTick);
-    const label = document.getElementById('auto-refresh-label');
-    let sec = REFRESH_MS / 1000;
-    function tik() {
-      sec -= 30;
-      if (sec <= 0) {
-        clearInterval(refreshTick);
-        label.textContent = '';
-        laad();
-      } else {
-        label.textContent = 'Auto-ververs over ' + Math.floor(sec / 60) + ' min';
-      }
-    }
-    label.textContent = 'Auto-ververs over ' + Math.floor(sec / 60) + ' min';
-    refreshTick = setInterval(tik, 30000);
-  }
-
-  laad();
-</script>
 </body>
 </html>
