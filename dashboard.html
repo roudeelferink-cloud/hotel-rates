@@ -203,9 +203,7 @@
 
 <script>
   const SHEET_ID = '1QIitW5l90dYN0palPrbGM81m6tqKuvvLgPXqn6lSXwI';
-  // Haal de laatste 30 rijen op (genoeg voor 3 volledige runs van 9 hotels)
-  const SHEET_URL = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
-    '/gviz/tq?tqx=out:json&tq=select%20*%20order%20by%20A%20desc%20limit%2030';
+  const SHEET_URL = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json';
 
   const REFRESH_MS = 5 * 60 * 1000;
   let refreshTick = null;
