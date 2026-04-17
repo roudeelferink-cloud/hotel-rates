@@ -54,6 +54,6 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data.json dashboard.html
+          git add data.json
           git diff --cached --quiet || git commit -m "Hotel rates $(date -u '+%Y-%m-%d %H:%M UTC')"
           git push

@@ -23,7 +23,6 @@ import gspread
 from google.oauth2.service_account import Credentials
 
 from scraper import main as scrape
-from dashboard import genereer as genereer_dashboard
 
 # ---------------------------------------------------------------------------
 # Configuratie
@@ -125,8 +124,6 @@ def main() -> None:
     print("\nStap 2: Wegschrijven naar Google Sheets...")
     schrijf_naar_sheets(resultaten, dry_run=args.dry_run)
 
-    print("\nStap 3: Dashboard bijwerken...")
-    genereer_dashboard()
 
 
 if __name__ == "__main__":
