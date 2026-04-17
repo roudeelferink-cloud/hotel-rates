@@ -1,10 +1,12 @@
 # Hotel Rates Monitor — Projectstatus
 
-**Laatste update: 16 april 2026**
+**Laatste update: 17 april 2026**
 
-## Status: volledig operationeel + OTA monitoring
+## Status: volledig operationeel + OTA monitoring + 7-daagse kalender
 
-Alle 9 hotels worden gemonitord. De scraper haalt 3x per dag automatisch de goedkoopste beschikbare standaard tweepersoonskamer voor de volgende nacht op, schrijft de resultaten naar Google Sheets en vernieuwt het dashboard.
+Alle 9 hotels worden gemonitord. De scraper haalt 3x per dag automatisch de goedkoopste beschikbare standaard tweepersoonskamer op voor de komende **7 nachten** (9 hotels × 7 datums = 63 records per run), schrijft de resultaten naar Google Sheets en vernieuwt het dashboard.
+
+OTA-prijzen (Booking.com + Expedia) worden alleen voor dag 1 (morgen) opgehaald.
 
 Per hotel worden drie prijsbronnen vergeleken:
 - Directe websiteprijs
@@ -33,12 +35,12 @@ Per hotel worden drie prijsbronnen vergeleken:
 
 | Bestand | Functie |
 |---|---|
-| `scraper.py` | Haalt directe kamerprijzen op voor alle 9 hotels |
+| `scraper.py` | Haalt directe kamerprijzen op voor alle 9 hotels × 7 datums = 63 records |
 | `scraper_ota.py` | Haalt Booking.com prijzen + ranks op per hotel (naamszoekactie + slug-verificatie) |
 | `sheets_writer.py` | Voert scraper uit, schrijft naar Google Sheets, vernieuwt dashboard |
-| `dashboard.py` | Genereert `dashboard.html` vanuit `data.json` |
+| `dashboard.py` | Genereert `dashboard.html` vanuit `data.json` (kalenderweergave + dag-1 detail) |
 | `dashboard.html` | Lokaal HTML-dashboard, gesynct naar OneDrive (alleen als map bestaat) |
-| `data.json` | Output van de meest recente scraper-run |
+| `data.json` | Output van de meest recente scraper-run (63 records: 9 hotels × 7 datums) |
 | `credentials.json` | Google Service Account — staat in `.gitignore`, nooit committen |
 | `.github/workflows/hotel-rates.yml` | GitHub Actions workflow voor automatisch draaien in de cloud |
 
@@ -103,8 +105,9 @@ Per hotel worden drie prijsbronnen vergeleken:
 
 ## Google Sheets
 - Sheet ID: `1QIitW5l90dYN0palPrbGM81m6tqKuvvLgPXqn6lSXwI`
-- Kolommen: `timestamp | hotelnaam | kamernaam | tarieftype | prijs | booking_prijs | booking_rank | expedia_prijs | expedia_rank`
-- Elke run voegt 9 rijen toe
+- Kolommen: `timestamp | datum | hotelnaam | kamernaam | tarieftype | prijs | booking_prijs | booking_rank | expedia_prijs | expedia_rank`
+- Elke run voegt 63 rijen toe (9 hotels × 7 datums)
+- **Let op:** kolom `datum` is nieuw (toegevoegd 17-04-2026). Bestaande rijen in het sheet hebben deze kolom niet.
 
 ---
 
@@ -112,7 +115,12 @@ Per hotel worden drie prijsbronnen vergeleken:
 - Gegenereerd door `dashboard.py` op basis van `data.json`
 - Lokaal gesynct naar OneDrive: `Documenten\Hotel Tarieven\dashboard.html`
   (sync wordt overgeslagen als de OneDrive-map niet bestaat, bv. op GitHub Actions)
-- Kolommen: Hotel | Kamertype | Directe prijs | Booking.com (prijs + rank) | Expedia | vs. eigen hotel
+- Twee secties:
+  1. **Kalenderweergave** (9 hotels × 7 datums grid):
+     - Kleur per cel: groen = concurrent duurder dan eigen hotel, rood = concurrent goedkoper
+     - Eigen hotel = blauw
+     - Sticky eerste kolom (hotelnam), horizontaal scrollbaar
+  2. **Gedetailleerd overzicht dag 1** (morgen): Hotel | Kamertype | Directe prijs | Booking.com | Expedia | vs. eigen
 - Rank badge kleurcodering: groen (#1–3), oranje (#4–7), rood (#8+)
 
 ---

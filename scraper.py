@@ -583,6 +583,152 @@ def _leonardo_parse_body(body: str) -> list:
 
 
 # ---------------------------------------------------------------------------
+# Playwright batch-scrapers (één browser-sessie voor 7 datums)
+# ---------------------------------------------------------------------------
+
+def haal_prijzen_guestline_batch(datum_paren: list, property_code: str) -> list:
+    """
+    Haal Guestline-prijzen op voor meerdere datums in één browser-sessie.
+    Retourneert lijst van (prijs, kamer_type) tuples, één per datum-paar.
+    Bij fout: (None, foutmelding).
+    """
+    if not PLAYWRIGHT_BESCHIKBAAR:
+        raise RuntimeError("Playwright niet geïnstalleerd")
+
+    eerste_aan, eerste_vert = datum_paren[0]
+    pagina_url = (
+        f"https://booking.eu.guestline.app/{property_code}/availability"
+        f"?CheckIn={eerste_aan}&CheckOut={eerste_vert}&Adults=2&Children=0&Infants=0"
+    )
+
+    with sync_playwright() as pw:
+        browser, context = _pw_context(pw)
+        page = context.new_page()
+        try:
+            page.goto(pagina_url, wait_until="networkidle", timeout=60_000)
+
+            for sel in ["button:has-text('Accept')", "button:has-text('Accepteer')"]:
+                try:
+                    el = page.query_selector(sel)
+                    if el and el.is_visible():
+                        el.click()
+                        page.wait_for_timeout(500)
+                except Exception:
+                    pass
+
+            room_naam: dict = {}
+            try:
+                rr = page.evaluate(
+                    f"async () => {{"
+                    f"  const r = await fetch('/api/roomRates/{property_code}/{property_code}?language=nl&debug=false');"
+                    f"  return r.ok ? await r.json() : null;"
+                    f"}}"
+                )
+                if rr and isinstance(rr.get("rooms"), list):
+                    for r in rr["rooms"]:
+                        room_naam[r["id"]] = r["name"]
+            except Exception:
+                pass
+
+            resultaten = []
+            for aankomst, vertrek in datum_paren:
+                try:
+                    result = page.evaluate(
+                        f"async () => {{"
+                        f"  const url = '/api/availabilities/{property_code}/{property_code}/enhanced"
+                        f"?arrival={aankomst}&departure={vertrek}&adults=2&children=0&infants=0';"
+                        f"  const r = await fetch(url);"
+                        f"  return r.ok ? await r.json() : null;"
+                        f"}}"
+                    )
+                    if not result or "availabilities" not in result:
+                        resultaten.append((None, None))
+                        continue
+                    kamers = []
+                    for room in result["availabilities"].get("rooms", []):
+                        if "INCL" in room.get("rateId", ""):
+                            continue
+                        room_id = room.get("roomId", "")
+                        for price in room.get("prices", []):
+                            p = price.get("amountAfterTax")
+                            if p and float(p) > 0:
+                                kamers.append((float(p), room_naam.get(room_id, room_id)))
+                    resultaten.append(min(kamers, key=lambda x: x[0]) if kamers else (None, None))
+                except Exception as e:
+                    resultaten.append((None, str(e)))
+            return resultaten
+
+        except PlaywrightTimeout:
+            raise TimeoutError(f"Timeout Guestline ({property_code})")
+        finally:
+            browser.close()
+
+
+def haal_prijzen_smarthotel_batch(datum_paren: list, hotel_id: str) -> list:
+    """
+    Haal SmartHotel-prijzen op voor meerdere datums in één browser-sessie.
+    Retourneert lijst van (prijs, kamer_type) tuples.
+    """
+    if not PLAYWRIGHT_BESCHIKBAAR:
+        raise RuntimeError("Playwright niet geïnstalleerd")
+
+    with sync_playwright() as pw:
+        browser, context = _pw_context(pw)
+        page = context.new_page()
+        try:
+            resultaten = []
+            for aankomst, vertrek in datum_paren:
+                try:
+                    url = f"https://ibe.smarthotel.nl/hotel/{hotel_id}/{aankomst}/{vertrek}/2/0/0/0/rooms"
+                    page.goto(url, wait_until="networkidle", timeout=60_000)
+                    page.wait_for_timeout(2_000)
+                    kamers = _smarthotel_parse_body(page.inner_text("body"))
+                    resultaten.append(min(kamers, key=lambda x: x[0]) if kamers else (None, None))
+                except PlaywrightTimeout:
+                    resultaten.append((None, f"Timeout ({aankomst})"))
+                except Exception as e:
+                    resultaten.append((None, str(e)))
+            return resultaten
+        finally:
+            browser.close()
+
+
+def haal_prijzen_leonardo_batch(datum_paren: list, hotel_slug: str) -> list:
+    """
+    Haal Leonardo-prijzen op voor meerdere datums in één browser-sessie.
+    Retourneert lijst van (prijs, kamer_type) tuples.
+    """
+    if not PLAYWRIGHT_BESCHIKBAAR:
+        raise RuntimeError("Playwright niet geïnstalleerd")
+
+    with sync_playwright() as pw:
+        browser, context = _pw_context(pw)
+        page = context.new_page()
+        try:
+            resultaten = []
+            for aankomst, vertrek in datum_paren:
+                try:
+                    url = (
+                        f"https://www.leonardo-hotels.com/booking"
+                        f"?hotel={hotel_slug}"
+                        f"&from={aankomst}&to={vertrek}"
+                        f"&stay=leisure&redeemPoints=false"
+                        f"&paxesConfig=adults,2,children,0,infants,0"
+                    )
+                    page.goto(url, wait_until="load", timeout=90_000)
+                    page.wait_for_timeout(5_000)
+                    kamers = _leonardo_parse_body(page.inner_text("body"))
+                    resultaten.append(min(kamers, key=lambda x: x[0]) if kamers else (None, None))
+                except PlaywrightTimeout:
+                    resultaten.append((None, f"Timeout ({aankomst})"))
+                except Exception as e:
+                    resultaten.append((None, str(e)))
+            return resultaten
+        finally:
+            browser.close()
+
+
+# ---------------------------------------------------------------------------
 # Hoofd scrape-functie
 # ---------------------------------------------------------------------------
 
@@ -643,42 +789,113 @@ def scrape_hotel(hotel: dict, aankomst: str, vertrek: str) -> dict:
 # ---------------------------------------------------------------------------
 
 def main() -> list:
-    morgen = date.today() + timedelta(days=1)
-    overmorgen = morgen + timedelta(days=1)
-    aankomst = morgen.strftime("%Y-%m-%d")
-    vertrek = overmorgen.strftime("%Y-%m-%d")
+    vandaag = date.today()
+    datum_paren = [
+        (
+            (vandaag + timedelta(days=i)).strftime("%Y-%m-%d"),
+            (vandaag + timedelta(days=i + 1)).strftime("%Y-%m-%d"),
+        )
+        for i in range(1, 8)
+    ]
 
-    print(f"Prijzen ophalen voor: {aankomst} -> {vertrek}")
-    print("-" * 55)
+    print(f"7-daagse prijsvergelijking: {datum_paren[0][0]} t/m {datum_paren[-1][0]}")
+    print("=" * 60)
 
+    nu = datetime.now().isoformat()
+    hotel_volgorde = {h["naam"]: i for i, h in enumerate(HOTELS)}
     resultaten = []
-    for hotel in HOTELS:
-        label = "[eigen] " if hotel.get("eigen") else "        "
-        print(f"  {label}{hotel['naam']} ...", end="", flush=True)
-        data = scrape_hotel(hotel, aankomst, vertrek)
-        resultaten.append(data)
-        if data["prijs"] is not None:
-            print(f"  EUR {data['prijs']:.2f}  ({data['kamer_type']})")
-        else:
-            print(f"  --  {data['fout']}")
 
-    # OTA prijzen en ranks (Booking.com + Expedia) — zoekop op hotelnaam
+    pw_typen = {"guestline", "smarthotel", "leonardo"}
+    niet_pw_hotels = [h for h in HOTELS if h["type"] not in pw_typen]
+    pw_hotels = [h for h in HOTELS if h["type"] in pw_typen]
+
+    # Non-Playwright: per datum scrapen
+    for aankomst, vertrek in datum_paren:
+        print(f"\n--- {aankomst} ---")
+        for hotel in niet_pw_hotels:
+            label = "[eigen] " if hotel.get("eigen") else "        "
+            print(f"  {label}{hotel['naam']} ...", end="", flush=True)
+            data = scrape_hotel(hotel, aankomst, vertrek)
+            resultaten.append(data)
+            if data["prijs"] is not None:
+                print(f"  EUR {data['prijs']:.2f}  ({data['kamer_type']})")
+            else:
+                print(f"  --  {data['fout']}")
+
+    # Playwright: batch per hotel (één browser voor alle 7 datums)
+    if PLAYWRIGHT_BESCHIKBAAR:
+        for hotel in pw_hotels:
+            print(f"\nPlaywright batch: {hotel['naam']} ({len(datum_paren)} datums)...")
+            try:
+                if hotel["type"] == "guestline":
+                    batch = haal_prijzen_guestline_batch(datum_paren, hotel["property_code"])
+                elif hotel["type"] == "smarthotel":
+                    batch = haal_prijzen_smarthotel_batch(datum_paren, hotel["hotel_id"])
+                elif hotel["type"] == "leonardo":
+                    batch = haal_prijzen_leonardo_batch(datum_paren, hotel["hotel_slug"])
+                else:
+                    batch = [(None, f"Onbekend type: {hotel['type']}")] * len(datum_paren)
+            except Exception as e:
+                batch = [(None, str(e))] * len(datum_paren)
+
+            for (aankomst, _vertrek), (prijs, kamer) in zip(datum_paren, batch):
+                heeft_prijs = prijs is not None
+                resultaten.append({
+                    "naam": hotel["naam"],
+                    "eigen": hotel.get("eigen", False),
+                    "datum": aankomst,
+                    "timestamp": nu,
+                    "prijs": prijs,
+                    "kamer_type": kamer if heeft_prijs else None,
+                    "fout": None if heeft_prijs else (kamer or "Prijs niet gevonden"),
+                    "booking_prijs": None,
+                    "booking_rank": None,
+                    "expedia_prijs": None,
+                    "expedia_rank": None,
+                })
+                if heeft_prijs:
+                    print(f"  {aankomst}: EUR {prijs:.2f}  ({kamer})")
+                else:
+                    print(f"  {aankomst}: --  {kamer}")
+    else:
+        for hotel in pw_hotels:
+            for aankomst, _ in datum_paren:
+                resultaten.append({
+                    "naam": hotel["naam"],
+                    "eigen": hotel.get("eigen", False),
+                    "datum": aankomst,
+                    "timestamp": nu,
+                    "prijs": None,
+                    "kamer_type": None,
+                    "fout": "Playwright niet geïnstalleerd",
+                    "booking_prijs": None,
+                    "booking_rank": None,
+                    "expedia_prijs": None,
+                    "expedia_rank": None,
+                })
+
+    # OTA: alleen voor dag 1 (morgen)
     if OTA_BESCHIKBAAR:
-        print("\nOTA prijzen ophalen (Booking.com)...")
-        booking_data = scrape_booking(HOTELS, aankomst, vertrek)
-
+        dag1_aankomst, dag1_vertrek = datum_paren[0]
+        print(f"\nOTA prijzen ophalen (dag 1: {dag1_aankomst})...")
+        booking_data = scrape_booking(HOTELS, dag1_aankomst, dag1_vertrek)
         print("OTA prijzen ophalen (Expedia)...")
-        expedia_data = scrape_expedia(HOTELS, aankomst, vertrek)
+        expedia_data = scrape_expedia(HOTELS, dag1_aankomst, dag1_vertrek)
 
-        for i, hotel in enumerate(HOTELS):
+        for r in resultaten:
+            if r["datum"] == dag1_aankomst:
+                naam = r["naam"]
+                b = booking_data.get(naam, {})
+                e = expedia_data.get(naam, {})
+                r["booking_prijs"] = b.get("prijs")
+                r["booking_rank"] = b.get("rank")
+                r["expedia_prijs"] = e.get("prijs")
+                r["expedia_rank"] = e.get("rank")
+
+        for hotel in HOTELS:
             naam = hotel["naam"]
             b = booking_data.get(naam, {})
             e = expedia_data.get(naam, {})
-            resultaten[i]["booking_prijs"] = b.get("prijs")
-            resultaten[i]["booking_rank"] = b.get("rank")
-            resultaten[i]["expedia_prijs"] = e.get("prijs")
-            resultaten[i]["expedia_rank"] = e.get("rank")
-
             b_prijs, b_rank = b.get("prijs"), b.get("rank")
             e_prijs, e_rank = e.get("prijs"), e.get("rank")
             b_str = f"EUR {b_prijs:.2f}  #{b_rank}" if b_prijs else ("--" if b_rank is None else f"--  #{b_rank}")
@@ -687,11 +904,14 @@ def main() -> list:
     else:
         print("\n[OTA scraping overgeslagen — scraper_ota.py niet gevonden]")
 
+    # Sorteer op datum, dan op hotel-volgorde
+    resultaten.sort(key=lambda r: (r["datum"], hotel_volgorde.get(r["naam"], 99)))
+
     output_bestand = "data.json"
     with open(output_bestand, "w", encoding="utf-8") as f:
         json.dump(resultaten, f, ensure_ascii=False, indent=2)
 
-    print(f"\nResultaten opgeslagen in {output_bestand}")
+    print(f"\nResultaten opgeslagen in {output_bestand} ({len(resultaten)} records, {len(datum_paren)} datums)")
     return resultaten
 
 

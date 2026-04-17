@@ -24,6 +24,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 
 from scraper import main as scrape
+from dashboard import genereer as genereer_dashboard
 
 # ---------------------------------------------------------------------------
 # Configuratie
@@ -36,7 +37,7 @@ SCOPES = [
     "https://www.googleapis.com/auth/drive.readonly",
 ]
 HEADER = [
-    "timestamp", "hotelnaam", "kamernaam", "tarieftype", "prijs",
+    "timestamp", "datum", "hotelnaam", "kamernaam", "tarieftype", "prijs",
     "booking_prijs", "booking_rank", "expedia_prijs", "expedia_rank",
 ]
 
@@ -67,6 +68,7 @@ def resultaten_naar_rijen(resultaten: list) -> list:
             continue  # sla hotels zonder prijs over
         rijen.append([
             r["timestamp"],
+            r.get("datum", ""),
             r["naam"],
             r["kamer_type"] or "",
             "eigen" if r.get("eigen") else "concurrent",
@@ -128,6 +130,9 @@ def main() -> None:
 
     print("\nStap 2: Wegschrijven naar Google Sheets...")
     schrijf_naar_sheets(resultaten, dry_run=args.dry_run)
+
+    print("\nStap 3: Dashboard genereren...")
+    genereer_dashboard()
 
 
 
