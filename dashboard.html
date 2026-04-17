@@ -202,8 +202,7 @@
 </div>
 
 <script>
-  const SHEET_ID = '1QIitW5l90dYN0palPrbGM81m6tqKuvvLgPXqn6lSXwI';
-  const SHEET_URL = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json';
+  const CSV_URL = 'https://docs.google.com/spreadsheets/d/1QIitW5l90dYN0palPrbGM81m6tqKuvvLgPXqn6lSXwI/export?format=csv';
 
   const REFRESH_MS = 5 * 60 * 1000;
   let refreshTick = null;
@@ -233,27 +232,46 @@
   }
 
   async function haalSheetData() {
-    const resp = await fetch(SHEET_URL);
+    const resp = await fetch(CSV_URL);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const text = await resp.text();
+    return parseCSV(text);
+  }
 
-    // Verwijder de JSONP-wrapper: /*O_o*/\ngoogle.visualization.Query.setResponse({...});
-    const start = text.indexOf('{');
-    const end   = text.lastIndexOf('}');
-    if (start === -1 || end === -1) throw new Error('Onverwacht antwoordformaat');
-    const data = JSON.parse(text.slice(start, end + 1));
-
-    if (data.status !== 'ok') {
-      const msg = (data.errors && data.errors[0] && (data.errors[0].detailed_message || data.errors[0].message)) || 'Sheet-fout';
-      throw new Error(msg);
-    }
-
-    const headers = data.table.cols.map(function(c) { return c.label || c.id; });
-    return data.table.rows.map(function(row) {
+  function parseCSV(text) {
+    const lines = text.replace(/\r/g, '').split('\n').filter(function(l) { return l.trim(); });
+    if (lines.length < 2) return [];
+    const headers = parseCSVRegel(lines[0]);
+    return lines.slice(1).map(function(line) {
+      const waarden = parseCSVRegel(line);
       const obj = {};
-      headers.forEach(function(h, i) { obj[h] = row.c[i] ? row.c[i].v : null; });
+      headers.forEach(function(h, i) {
+        const v = waarden[i] !== undefined ? waarden[i] : '';
+        obj[h] = v === '' ? null : v;
+      });
+      // Numerieke velden omzetten
+      ['prijs', 'booking_prijs', 'booking_rank', 'expedia_prijs', 'expedia_rank'].forEach(function(k) {
+        if (obj[k] !== null) obj[k] = parseFloat(obj[k]);
+      });
       return obj;
     });
+  }
+
+  function parseCSVRegel(line) {
+    const result = [];
+    let huidig = '', inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      if (line[i] === '"') {
+        if (inQuotes && line[i + 1] === '"') { huidig += '"'; i++; }
+        else { inQuotes = !inQuotes; }
+      } else if (line[i] === ',' && !inQuotes) {
+        result.push(huidig); huidig = '';
+      } else {
+        huidig += line[i];
+      }
+    }
+    result.push(huidig);
+    return result;
   }
 
   function renderTabel(rijen, timestamp) {
